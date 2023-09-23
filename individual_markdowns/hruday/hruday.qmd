@@ -15,7 +15,9 @@ format:
     table-of-contents: true ## (Useful) Creates a table of contents!
     number-sections: true ## (Optional) Puts numbers next to heading/subheadings
 ---
+#Kidney version
 
+## Loading in the dataset
 ```{r setup, echo=FALSE, message=FALSE}
 library(tidyverse)  
 library(plotly)  
@@ -27,9 +29,117 @@ library(enrichplot)
 library(WGCNA)
 ```
 
+## Appending outcomes
 ```{r}
-exprs_mat <- read.csv("../../datasets/kidney_data/exprs_mat.csv",row.names=1)
-outcome_data <- read.csv("../../datasets/kidney_data/outcome_mat.csv")
-exprs_mat
+exprs_mat = read.csv("../../datasets/kidney_data/exprs_mat.csv",row.names=1)
+outcome_data = read.csv("../../datasets/kidney_data/outcome_mat.csv")
+
+outcome_data$Outcomes = ifelse(grepl("non-AR", outcome_data$outcome), "Stable", "Rejection")
 outcome_data
 ```
+
+## Creating tabular summaries for each gene
+```{r}
+design = model.matrix(~Outcomes, data = outcome_data) #Construct design matrix of predictors
+fit <- limma::lmFit(exprs_mat, design=design) #Pass in design matrix and expression matrix
+fit <- eBayes(fit) #eBayes takes in the lmFit and performs t-stats for each row in the expression matrix combined with the design matrix, effectively running t-test for each gene
+
+library(DT)
+tT <- topTable(fit, n = Inf, sort.by="P") 
+DT::datatable(tT[1:100, ]) #display the top 100 genes data
+```
+
+## Creating a box plot for the top genes which are less than 0.05 and sorted by adjusted p value
+```{r}
+topgenes = tT[tT["adj.P.Val"]  < 0.05, ]
+print(nrow(topgenes))
+exprs_mat.most_expressed_genes1 = exprs_mat[rownames(topgenes), ]
+
+exprs_mat.most_expressed_genes1$GeneName = rownames(exprs_mat.most_expressed_genes1)
+exprs_mat.most_exprss_genes.mltd = melt(exprs_mat.most_expressed_genes1, id='GeneName')
+
+colnames(exprs_mat.most_exprss_genes.mltd) = c("GeneName", "ID", "P.Val")
+
+exprs_mat.most_exprss_genes.mltd = merge(exprs_mat.most_exprss_genes.mltd, outcome_data, by = "ID", all.x = TRUE)
+
+rows = tibble(exprs_mat.most_exprss_genes.mltd[exprs_mat.most_exprss_genes.mltd$GeneName %in% c(rownames(topgenes)[1:6]), ])
+
+bp = rows |> ggplot(aes(x=Outcomes, y=P.Val, fill=factor(Outcomes, level=c("Rejection", "Stable")))) + geom_boxplot(outlier.shape = NA, width=0.5) + labs(x="Patient Outcome", y="Expression", title=paste("Expression of Kidney Genes across Rejection and Stable patients"), fill="Patient Outcome") + stat_summary(fun=mean, geom="point", shape=20, size=5, color="white", fill="white") + facet_wrap(~GeneName, ncol=2, scales="free")
+
+print(bp)
+
+rows = tibble(exprs_mat.most_exprss_genes.mltd[exprs_mat.most_exprss_genes.mltd["GeneName"] == "SLAMF6", ])
+  bp = rows |> ggplot(aes(x=Outcomes, y=P.Val, fill=factor(Outcomes, level=c("Rejection", "Stable")))) + geom_boxplot(outlier.shape = NA, width=0.5) + xlab(label="Kidney Gene: SLAMF6") + labs(x="Patient Outcome", y="Expression", title="Expression of Kidney Gene: SLAMF6 across Rejection and Stable patients", fill="Patient Outcome") + stat_summary(fun=mean, geom="point", shape=20, size=5, color="white", fill="white")
+  ggsave("genekidneySLAMF6.png")
+  print(bp)
+  
+rows = tibble(exprs_mat.most_exprss_genes.mltd[exprs_mat.most_exprss_genes.mltd["GeneName"] == "SGCB", ])
+  bp = rows |> ggplot(aes(x=Outcomes, y=P.Val, fill=factor(Outcomes, level=c("Rejection", "Stable")))) + geom_boxplot(outlier.shape = NA, width=0.5) + xlab(label="Kidney Gene: SLAMF6") + labs(x="Patient Outcome", y="Expression", title="Expression of Kidney Gene: SGCB across Rejection and Stable patients", fill="Patient Outcome") + stat_summary(fun=mean, geom="point", shape=20, size=5, color="white", fill="white")
+  ggsave("genekidneySGCB.png")
+  print(bp)
+```
+
+# Blood version
+
+## Loading in the dataset
+```{r}
+exprs_mat = read.csv("../../datasets/kidney_data/exprs_mat2.csv",row.names=1)
+outcome_data = read.csv("../../datasets/kidney_data/outcome_mat2.csv")
+```
+
+## Appending outcomes
+```{r}
+outcome_data$Outcomes = ifelse(grepl("non-AR", outcome_data$outcome), "Stable", "Rejection")
+outcome_data
+```
+
+## Creating tabular summaries for each gene
+```{r}
+design = model.matrix(~Outcomes, data = outcome_data) #Construct design matrix of predictors
+fit <- limma::lmFit(exprs_mat, design=design) #Pass in design matrix and expression matrix
+fit <- eBayes(fit) #eBayes takes in the lmFit and performs t-stats for each row in the expression matrix combined with the design matrix, effectively running t-test for each gene
+
+library(DT)
+tT <- topTable(fit, n = Inf, sort.by="P") 
+DT::datatable(tT[1:100, ]) #display the top 100 genes data
+```
+
+## Creating a box plot for the top genes which are less than 0.05 and sorted by adjusted p value
+```{r}
+topgenes = tT[tT["adj.P.Val"]  < 0.05, ]
+print(nrow(topgenes))
+exprs_mat.most_expressed_genes2 = exprs_mat[rownames(topgenes), ]
+
+exprs_mat.most_expressed_genes2$GeneName = rownames(exprs_mat.most_expressed_genes2)
+exprs_mat.most_exprss_genes.mltd = melt(exprs_mat.most_expressed_genes2, id='GeneName')
+
+colnames(exprs_mat.most_exprss_genes.mltd) = c("GeneName", "ID", "P.Val")
+
+exprs_mat.most_exprss_genes.mltd = merge(exprs_mat.most_exprss_genes.mltd, outcome_data, by = "ID", all.x = TRUE)
+
+rows = tibble(exprs_mat.most_exprss_genes.mltd[exprs_mat.most_exprss_genes.mltd$GeneName %in% c(rownames(topgenes)[1:6]), ])
+
+bp = rows |> ggplot(aes(x=Outcomes, y=P.Val, fill=factor(Outcomes, level=c("Rejection", "Stable")))) + geom_boxplot(outlier.shape = NA, width=0.5) + labs(x="Patient Outcome", y="Expression", title=paste("Expression of Blood Genes across Rejection and Stable patients"), fill="Patient Outcome") + stat_summary(fun=mean, geom="point", shape=20, size=5, color="white", fill="white") + facet_wrap(~GeneName, ncol=2, scales="free")
+
+print(bp)
+
+rows = tibble(exprs_mat.most_exprss_genes.mltd[exprs_mat.most_exprss_genes.mltd["GeneName"] == "SLAMF6", ])
+  bp = rows |> ggplot(aes(x=Outcomes, y=P.Val, fill=factor(Outcomes, level=c("Rejection", "Stable")))) + geom_boxplot(outlier.shape = NA, width=0.5) + xlab(label="Blood Gene: SLAMF6") + labs(x="Patient Outcome", y="Expression", title="Expression of Blood Gene: SLAMF6 across Rejection and Stable patients", fill="Patient Outcome") + stat_summary(fun=mean, geom="point", shape=20, size=5, color="white", fill="white")
+  ggsave("genebloodSLAMF6.png")
+  print(bp)
+  
+rows = tibble(exprs_mat.most_exprss_genes.mltd[exprs_mat.most_exprss_genes.mltd["GeneName"] == "SGCB", ])
+  bp = rows |> ggplot(aes(x=Outcomes, y=P.Val, fill=factor(Outcomes, level=c("Rejection", "Stable")))) + geom_boxplot(outlier.shape = NA, width=0.5) + xlab(label="Blood Gene: SLAMF6") + labs(x="Patient Outcome", y="Expression", title="Expression of Blood Gene: SGCB across Rejection and Stable patients", fill="Patient Outcome") + stat_summary(fun=mean, geom="point", shape=20, size=5, color="white", fill="white")
+  ggsave("genebloodSGCB.png")
+  print(bp)
+```
+
+## Finding common Genes
+
+```{r}
+exprs_mat.most_expressed_genes1$GeneName = rownames(exprs_mat.most_expressed_genes1)
+exprs_mat.most_expressed_genes2$GeneName = rownames(exprs_mat.most_expressed_genes2)
+
+intersect(exprs_mat.most_expressed_genes1[, "GeneName"], exprs_mat.most_expressed_genes2[, "GeneName"])
+```
+

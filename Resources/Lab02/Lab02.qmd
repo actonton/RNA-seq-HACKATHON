@@ -42,11 +42,11 @@ The actual expression matrix can be extracted using the exprs function. Data abo
 #Sample code
 gse$Outcome <- ifelse(grepl("AR", gse$title), "Rejection", "Stable") #For every data point in gse$title if the title contains AR then it means kidney is rejected, otherwise it is stable. This is stored in a new column called outcome
 
-table(gse$Outcome)
-table(gse$source_name_ch1)
-## head(pData(gse)[,1:5])
-## head(fData(gse)[,1:5])
-## head(exprs(gse)[,1:5])
+#table(gse$Outcome)
+#table(gse$source_name_ch1)
+head(pData(gse)[,1:5])
+head(fData(gse)[,1:5])
+head(exprs(gse)[,1:5])
 eMat = exprs(gse) #converts the gse to matrix with sampleNames as columns and featureData as row names
 
 #Have to be careful because number of columns is actually the patients/samples and number of rows is actually the genes/features
@@ -94,6 +94,7 @@ write.csv(exprs(gse), "data/GSE46474_expression_matrix.txt")
 ```{r}
 for (i in 1:5){
   row = tibble(eMat[i, ])
+  print(row)
   row$patient = colnames(eMat)
   colnames(row) = c("values", "sampleid")
   bp = ggplot() + geom_boxplot(data=row, aes(y=values)) + xlab(label=paste("Feature: ", rownames(eMat)[i])) + geom_point(data=row, aes(x = 0, y = values, color=sampleid), inherit.aes = FALSE)
