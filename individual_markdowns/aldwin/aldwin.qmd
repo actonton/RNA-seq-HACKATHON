@@ -33,13 +33,32 @@ tT <- topTable(fit, n = Inf, sort.by="P")
 DT::datatable(tT[1:100, ]) #display the top 100 genes data
 ```
 
-# Volcano plot
+# Enrichment plot
 
 ```{r}
 
+classes <- colnames(exprs_mat)
+design <- model.matrix(~ classes)
+limma.fit <- lmFit(exprs_mat, design)
+limma.fit <- eBayes(fit)
+DEresults <- topTable(limma.fit, number = Inf, sort.by = "p")
+datatable(DEresults)
+```
+
+```{r}
+
+gene_list <- -log10(DEresults$P.Value)
+names(gene_list) <- rownames(DEresults)
+gse <- gseGO(geneList=gene_list, 
+             ont ="BP", 
+             keyType = "SYMBOL", 
+             OrgDb = org.Hs.eg.db)
+datatable(gse@result)
 
 
 
+
+gseaplot(gse, "GO:0002768")
 
 # ## Code for MA plot
 # df<- topTable(fit, number=nrow(fit), genelist=rownames(exprs_mat))
