@@ -56,9 +56,5 @@ gse <- gseGO(geneList=gene_list,
 datatable(gse@result)
 
 
-
-
 gseaplot(gse, "GO:0002768")
-
-
 ```
