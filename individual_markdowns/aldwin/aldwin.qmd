@@ -56,17 +56,5 @@ gse <- gseGO(geneList=gene_list,
 datatable(gse@result)
 
 
-
-
 gseaplot(gse, "GO:0002768")
-
-# ## Code for MA plot
-# df<- topTable(fit, number=nrow(fit), genelist=rownames(exprs_mat))
-# ggplot(df, aes(x = AveExpr, y = logFC))+
-#     geom_point(aes(colour=-log10(P.Value)), alpha=1/3, size=1) +
-#     scale_colour_gradient(low="blue",high="red")+
-#     ylab("log2 fold change") + xlab("Average expression")
-#     
-# ## Code to extract negative log p-value
-# p.value = -log10(df$P.Value)
 ```
