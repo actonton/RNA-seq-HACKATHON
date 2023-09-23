@@ -1,0 +1,54 @@
+---
+title: 'Lab 2: Week 2'
+author: "Hruday"
+format: 
+  html: 
+    #### IMPORTANT ###
+    self-contained: true ## Creates a single HTML file as output
+    code-fold: show ## Code folding; allows you to show/hide code chunks
+    #### USEFUL ###
+    code-tools: true ## Includes a menu to show/hide all chunks
+    #### OPTIONAL ###
+    code-line-numbers: true ## Line numbers in code chunks
+    df-print: paged ## Sets how dataframes are automatically printed
+    theme: lux ## Controls the font, colours, etc.
+    table-of-contents: true ## (Useful) Creates a table of contents!
+    number-sections: true ## (Optional) Puts numbers next to heading/subheadings
+---
+
+# Exploring with PCA
+It would be nice if we can visualise our data with a 2D scatter-plot. However, for each patient, there are more than 10000 variables. How are we going to visualise this information for each patient? Similar to Lab 1, we can use a dimension reduction technique called PCA. PCA helps to reduce or summarise the information of a high dimensional object into a lower dimension. We can then use the first and second dimension, as the summary information of the >10000 genes, to plot a 2D scatter-plot. The PCA plot frequently gives us a good indication of how simple or difficult the relevant prediction task is. Please submit this plot for formative feedback and comment (1 sentence only) on what you learn from looking at this graph. Take care to make sure the graphic is properly labelled.
+
+```{r setup, echo = FALSE,message = FALSE, warning = FALSE}
+#Setup
+#library(dplyr)
+library(tibble)
+library(GEOquery) 
+library(R.utils)
+library(reshape2)
+library(ggplot2)
+library(limma)
+## gse <- getGEO("GSE46474")
+##gse <- gse$GSE46474_series_matrix.txt.gz
+load("data/GSE46474.RData")
+
+gse$Outcome <- ifelse(grepl("AR", gse$title), "Rejection", "Stable") #For every data point in gse$title if the title contains AR then it means kidney is rejected, otherwise it is stable. This is stored in a new column called outcome
+
+eMat = exprs(gse) #converts the gse to matrix with sampleNames as columns and featureData as row names
+```
+
+```{r, message=FALSE}
+eDF = t(data.frame(eMat))
+pca.eDF = t(summary(prcomp(eDF))$x)
+bind.pca.edf = rbind(eMat, pca.eDF)
+
+outcomes = t(data.frame(c(gse$Outcome) == "Rejection"))
+rownames(outcomes) = c('Outcomes')
+colnames(outcomes) = colnames(bind.pca.edf)
+bind.pca.edf = rbind(bind.pca.edf, outcomes)
+bind.pca.edf = data.frame(t(bind.pca.edf))
+
+bind.pca.edf |> ggplot() + geom_point(aes(x=PC1, y=PC2, color=factor(Outcomes))) + theme_bw() + xlab('Principal Component 1') + ylab('Principal Component 2') + scale_color_manual(name="Outcomes", values=c("red", "blue"), labels=c("Stable", "Rejection")) + geom_hline(yintercept=0) + geom_vline(xintercept=0) + ggtitle("PC1 vs PC2")
+
+```
+- The plot shows us that the points are roughly randomly spaced apart with no clear clusters or patterns. This suggests that the data is normally distributed and training models using randomly sampled data might give high accuracy results.

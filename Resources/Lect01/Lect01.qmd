@@ -1,0 +1,151 @@
+---
+title: 'Lecture 1: Week 1'
+author: "Hruday"
+format: 
+  html: 
+    #### IMPORTANT ###
+    self-contained: true ## Creates a single HTML file as output
+    code-fold: show ## Code folding; allows you to show/hide code chunks
+    #### USEFUL ###
+    code-tools: true ## Includes a menu to show/hide all chunks
+    #### OPTIONAL ###
+    code-line-numbers: true ## Line numbers in code chunks
+    df-print: paged ## Sets how dataframes are automatically printed
+    theme: lux ## Controls the font, colours, etc.
+    table-of-contents: true ## (Useful) Creates a table of contents!
+    number-sections: true ## (Optional) Puts numbers next to heading/subheadings
+---
+
+# [Extension] Introduction to Case Study 1: Reef
+Each week, in the lecture, we will examine a case study, giving you an overview of each of the five projects. If you want to get ahead, you can download the data from the Canvas site and follow the guide below to familiarise yourself with the data.
+
+The first case study will examine a data science question on coral bleaching. Coral bleaching is when coral reefs, under environmental stress (such as change in temperature), release algae in their tissues, causing them to turn white. Bleached corals become susceptible to disease and vulnerable to death. When this happens, the ecosystem is also disrupted. Predicting which environmental factors is associated with bleaching event is therefore important in better managing and preserving coral reefs. In this exercise we will look at a public dataset from the study “Sully, S., Burkepile, D. E., Donovan, M. K., Hodgson, G., & Van Woesik, R. (2019). A global analysis of coral bleaching over the past two decades. Nature communications, 10(1), 1-5”. In this study, the author has curated coral bleaching events at 3351 sites in 81 countries from 1998 to 2017 and a suite of environmental variables at each site.
+
+```{r setup, echo=FALSE, message=FALSE}
+#Setup
+library(ggplot2)
+library(viridis)
+library(cvTools)
+library(dplyr)
+library(leaflet)
+```
+
+## Import data
+The data we look at today is a standard csv file. The data was collected from two databases. Data on global coral bleaching event can be found at the Reef Check website. Data on environmental variables such as global sea surface temperature and wind speed can be found at the Coral Reef Temperature Anomaly Database (CoRTAD Version 6). Note that all information on CoRTAD are stored in a special data structure called netCDF. Processing the netCDF and matching the coral bleaching records with environmental records can be a bit challenging, which is why we have done this step and provide the final processed data for you.
+
+Inspect the first 6 rows of the coral bleaching data. For a description of each column, please refer to Supplementary Table 1 of the aforementioned study.
+
+```{r, message=FALSE}
+#View data
+#--1
+reef <- read.csv("data/Reef_Check_with_cortad_variables_with_annual_rate_of_SST_change.csv")
+dim(reef)
+
+#--2
+head(reef, 6)
+
+```
+
+## Visualisation on world map
+Data visualisation is an important component of Data Science, and insightful graphs allow us to effectively communicate information to our target audience. In this course, we begin to transition from static two-dimensional visuals to presenting information using interactive and animated visuals. The column Average_bleaching records the percentage of coral reefs across the globe that were recorded as bleached over the sampling periods. We can do the same thing here: use ggplot to visualise the percentage of coral reefs on a world map and look at which areas of the world have the most severe coral bleaching.
+
+```{r, message=FALSE}
+#Example code
+world_map <- map_data("world") #get world map
+
+#Plot world first and on top of it plot the locations with dot size based on how much bleaching there is
+ggplot() + geom_polygon(data = world_map, aes(x = long, y = lat, group = group),
+    fill = "grey", alpha = 0.3) + geom_point(data = reef, alpha = 0.2, aes(y = Latitude.Degrees,
+    x = Longitude.Degrees, size = Average_bleaching, color = Average_bleaching)) +
+    scale_colour_viridis() + theme_minimal()
+```
+
+# [Extension] Introduction to Case Study 2: Biomedical data
+The second case study will look at biomedical data, aiming to predict kidney transplantation outcome. Kidney transplantation is often the treatment of choice for people with end-stage kidney disease. However, despite advances in the field of transplantation, the proportion of patients who develop graft rejection after a kidney transplant remains high. Understanding the characteristics between stable patients and patients who experience rejection can be one of the ways to improve health outcomes for these people.
+
+In this exercise we will visualise public datasets on kidney transplant patients. We’ll start our investigation by looking at one dataset downloaded from GEO. The NCBI Gene Expression Omnibus (GEO) is a large public repository of microarray and sequencing-based datasets. You can download the dataset by looking up its GSE ID in the database. Information about each dataset, for example, the paper that this data is published in, the experimental protocol, can also be found on the database. We will first focus on how to analyse the data from “GSE46474”. This dataset contains a group of “discovery” patients and a group of “validation” patients. You can think of it as a “training” and “testing” group. To illustrate visualisation, we will play around with the “discovery” patients. The file GSE46474_series_matrix.txt.gz can also be accessed via CANVAS.
+
+## Import data
+The large file download from GEO may have an impact on your generation of the html file using Rmarkdown code, depending on your internet connection. We’ve provided the data in the form of an RData file called GSE46474.RData. However, we encourage you to experiment with the following code to see how to import data directly using the GEOquery package.
+
+```{r, message=FALSE}
+#--Example import 1
+library(GEOquery)
+library(Biobase)
+## import directly from the net 
+#gse <- getGEO("GSE46474")
+#gse <- gse$GSE46474_series_matrix.txt.gz
+#gse
+
+```
+
+```{r, message=FALSE}
+#--Example import 2
+## import directly from a locally saved file
+#Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) # in case of weird error about VROOM_CONNECTION_SIZE
+#gse <- getGEO(filename="data/GSE46474_series_matrix.txt.gz")
+#gse
+```
+
+```{r, message=FALSE}
+#--Example import 3
+library(GEOquery)
+library(Biobase)
+load("data/GSE46474.RData")
+class(gse)
+gse
+```
+
+## Expression Set
+
+```{r}
+slotNames(gse)
+```
+
+The ExpressionSet object contains several different slot names. Explanation of slot names:
+
+- experimentData: Contains text information about the design of the experiment.
+- assayData: Contains a matrix of expression values for each gene (feature) measured.
+- phenoData: Contains a data frame of sample information. i.e Covariates.
+- featureData: Contains a data frame of gene (feature) information.
+- annotation: Contains a Character describing the type of platform the samples were sequenced on.
+There are other slots but these are rarely used. If you’d like more information on the structure of the ExpressionSet object, you can watch the following video. Lets first use the exprs function from Biobase package. Notice how we have a matrix where our rows are probes which correspond to a gene of interest, and our columns correspond to a sample that has been sequenced.
+
+```{r}
+head(exprs(gse))
+dim(exprs(gse))
+```
+
+Data about the phenotype of each patient can be isolated using pData function. Similarly, we can isolate the featureData object using the fData function.
+
+```{r}
+head(pData(gse)[, 1:5])
+head(fData(gse)[, 1:5])
+```
+
+## Outcome
+We will extract a vector from the ExpressionSet object that refers to the outcome of each patient and attach it to the object gse. There are two possible outcomes for the Y outcome variable: “Rejection” or “Stable”. Our first step is to see if our statistics show the same sex ratio between those who are rejected and those who remain in the same class.
+
+```{r}
+gse$Outcome <- ifelse(grepl("AR", gse$title), "Rejection", "Stable")  #Tidy the title variable and call it Outcome. 
+table(gse$Outcome)
+ggplot(pData(gse), aes(x = factor(Outcome), fill = `Sex:ch1`)) + geom_bar(stat = "count") +
+    theme_bw()
+```
+
+## Quick Visualisation
+Before we perform any higher-level statistics, it is essential that we look at the data. What kind of graphics will you do? Are there any samples that appear to be significantly different from the others?  Is it necessary to remove any samples (patients)?
+
+```{r}
+library(reshape2)
+p <- ggplot(melt(exprs(gse)), aes(x = Var2, y = value)) + geom_boxplot(outlier.colour = "black",
+    outlier.shape = 16, outlier.size = 0.5, notch = FALSE) + theme(axis.text.x = element_text(angle = 180,
+    hjust = 1)) + labs(x = "patient", y = "expression value") + theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+p
+```
+
+```{r}
+summary(melt(exprs(gse))$value)
+```
+
