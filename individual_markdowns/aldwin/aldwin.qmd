@@ -1,0 +1,72 @@
+# Loading in the dataset
+
+```{r setup, echo=FALSE, message=FALSE}
+library(tidyverse)  
+library(plotly)  
+library(DT)  
+library(limma)  
+library(clusterProfiler)  
+library(org.Hs.eg.db)  
+library(enrichplot)  
+library(WGCNA)
+
+exprs_mat = read.csv("../../datasets/kidney_data/exprs_mat.csv",row.names=1)
+outcome_data = read.csv("../../datasets/kidney_data/outcome_mat.csv")
+```
+
+# Appending outcomes and normalising values
+
+```{r}
+outcome_data$Outcomes = ifelse(grepl("non-AR", outcome_data$outcome), "Stable", "Rejection")
+outcome_data
+```
+
+# Creating tabular summaries for each gene
+
+```{r}
+design = model.matrix(~Outcomes, data = outcome_data) #Construct design matrix of predictors
+fit <- limma::lmFit(exprs_mat, design=design) #Pass in design matrix and expression matrix
+fit <- eBayes(fit) #eBayes takes in the lmFit and performs t-stats for each row in the expression matrix combined with the design matrix, effectively running t-test for each gene
+
+library(DT)
+tT <- topTable(fit, n = Inf, sort.by="P") 
+DT::datatable(tT[1:100, ]) #display the top 100 genes data
+```
+
+# Enrichment plot
+
+```{r}
+
+classes <- colnames(exprs_mat)
+design <- model.matrix(~ classes)
+limma.fit <- lmFit(exprs_mat, design)
+limma.fit <- eBayes(fit)
+DEresults <- topTable(limma.fit, number = Inf, sort.by = "p")
+datatable(DEresults)
+```
+
+```{r}
+
+gene_list <- -log10(DEresults$P.Value)
+names(gene_list) <- rownames(DEresults)
+gse <- gseGO(geneList=gene_list, 
+             ont ="BP", 
+             keyType = "SYMBOL", 
+             OrgDb = org.Hs.eg.db)
+datatable(gse@result)
+
+
+
+
+gseaplot(gse, "GO:0002768")
+
+# ## Code for MA plot
+# df<- topTable(fit, number=nrow(fit), genelist=rownames(exprs_mat))
+# ggplot(df, aes(x = AveExpr, y = logFC))+
+#     geom_point(aes(colour=-log10(P.Value)), alpha=1/3, size=1) +
+#     scale_colour_gradient(low="blue",high="red")+
+#     ylab("log2 fold change") + xlab("Average expression")
+#     
+# ## Code to extract negative log p-value
+# p.value = -log10(df$P.Value)
+```
